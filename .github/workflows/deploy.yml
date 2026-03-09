@@ -1,19 +1,21 @@
-name: Deploy Website
+name: Deploy Website to Hetzner
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
-  # Option 1: Deploy to Vercel (recommended for MVP)
-  deploy-vercel:
-    name: Deploy to Vercel
+  build-and-deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
-    if: github.repository == 'talaria-guild/talaria-guild-website'
+    environment:
+      name: production
+      url: https://www.ctech.me
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -28,77 +30,33 @@ jobs:
       - name: Build static site
         run: npm run build
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+      - name: Deploy to Hetzner
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: ./
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            mkdir -p /opt/website/out
+            rm -rf /opt/website/out/*
 
-  # Option 2: Deploy to DigitalOcean VPS (self-hosted)
-  deploy-vps:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'  # Only on manual trigger
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Upload static files
+        uses: appleboy/scp-action@v0.1.7
         with:
-          node-version: '20'
-          cache: 'npm'
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "out/*"
+          target: "/opt/website/"
+          strip_components: 1
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build static site
-        run: npm run build
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DO_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.WEB_DROPLET_IP }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to droplet
-        env:
-          DROPLET_IP: ${{ secrets.WEB_DROPLET_IP }}
-        run: |
-          # Create tarball of built site
-          tar -czf out.tar.gz out/
-
-          # Copy to server
-          scp out.tar.gz root@$DROPLET_IP:/tmp/
-
-          # Deploy on server
-          ssh root@$DROPLET_IP 'bash -s' <<'ENDSSH'
-            set -e
-
-            echo "📥 Extracting website..."
-            mkdir -p /var/www/talariaguild.com
-            cd /var/www/talariaguild.com
-            tar -xzf /tmp/out.tar.gz
-            rm /tmp/out.tar.gz
-
-            # Ensure Caddy/nginx is serving the files
-            # (Assumes Caddy/nginx already configured)
-
-            echo "✅ Website deployed!"
-          ENDSSH
-
-      - name: Health check
-        env:
-          DROPLET_IP: ${{ secrets.WEB_DROPLET_IP }}
-        run: |
-          echo "🔍 Checking website..."
-          if curl -f http://$DROPLET_IP 2>/dev/null | grep -q "Talaria Guild"; then
-            echo "✅ Website is live!"
-          else
-            echo "❌ Website check failed"
-            exit 1
-          fi
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            echo "=== Deployed files ==="
+            ls /opt/website/out/ | head -20
+            echo "=== Done ==="
