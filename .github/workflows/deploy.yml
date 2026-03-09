@@ -37,8 +37,8 @@ jobs:
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
-            mkdir -p /opt/website/out
-            rm -rf /opt/website/out/*
+            mkdir -p /opt/website
+            find /opt/website -maxdepth 1 -mindepth 1 ! -name 'portal.env' -exec rm -rf {} +
 
       - name: Upload static files
         uses: appleboy/scp-action@v0.1.7
@@ -58,5 +58,5 @@ jobs:
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
             echo "=== Deployed files ==="
-            ls /opt/website/out/ | head -20
+            ls /opt/website/ | head -20
             echo "=== Done ==="
