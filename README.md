@@ -1,144 +1,64 @@
-# Talaria Guild Website
+# Talaria Works — Website
 
-Modern Next.js website with Contentlayer CMS for easy content management.
+Marketing site for **Talaria Works LLC** (talariaworks.com). Next.js (App Router) + TypeScript.
 
-## Tech Stack
+Originally designed in **Claude Design**; ported to Next.js so it can be maintained as code and
+extended (e.g. adding Payload CMS) later. The Claude Design **design system is kept intact** under
+`_ds/` and imported — re-export from Claude Design to update tokens.
 
-- **Framework**: Next.js 16 (App Router)
-- **Styling**: Tailwind CSS 4
-- **CMS**: Contentlayer (Markdown-based)
-- **Language**: TypeScript
-- **Deployment**: Static export (can deploy to Vercel, Vultr, or any static host)
+## Positioning (decided 2026-07-24)
 
-## Features
+- **Balanced two-pillar:** Managed IT & Security + Software / AI Engineering (co-equal)
+- **Moderate disclosure / reserved:** services described in full; no pricing, no team size,
+  no named clients, no vendor names
+- **Three routes:** `/` (Home) · `/services` · `/contact`
+- Content + structure spec: vault `02_Areas/Marketing/Website-Design-Prompt-ClaudeDesign.md`
 
-- ✅ Markdown-based CMS (no database needed)
-- ✅ Fast static site generation
-- ✅ SEO-optimized
-- ✅ Mobile responsive
-- ✅ Easy to edit content (just edit .md files)
-- ✅ TypeScript for type safety
+## Stack
 
-## Getting Started
+- **Next.js 16** App Router, **React 19**, **TypeScript**
+- Styling: the `_ds/` design-system CSS tokens (gold `#C7A831`) imported into `app/globals.css`,
+  plus a site component layer in the same file. No Tailwind.
+- Icons: **lucide-react** (replaces the export's unpkg CDN)
+- Fonts: Cinzel / Libre Franklin / JetBrains Mono via Google Fonts (`_ds/tokens/fonts.css`)
 
-### Development
+## Structure
 
-```bash
-# Install dependencies
+```
+app/
+  layout.tsx           # html shell, metadata, TopBar/Header/Footer
+  globals.css          # imports _ds design system + site component classes
+  page.tsx             # Home
+  services/page.tsx    # Services
+  contact/page.tsx     # Contact
+components/             # TopBar, Header (route-aware nav), Footer, ContactForm, ui primitives
+lib/content.ts         # copy + service/tier data (single source for page content)
+_ds/                   # Claude Design design system (tokens) — source of truth, imported intact
+public/assets/         # brand logos (full / mark, light + on-dark)
+```
+
+## Develop
+
+```
 npm install
-
-# Run development server
-npm run dev
+npm run dev        # http://localhost:3000
+npm run build      # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Content edits
 
-### Building for Production
+Most copy lives in `lib/content.ts` (services, coverage tiers, trust bar, process). Page-level
+headings/hero copy live in the `app/**/page.tsx` files.
 
-```bash
-# Build static site
-npm run build
+## Known follow-ups
 
-# The static site will be in the /out directory
-# Deploy the /out folder to any static hosting
-```
+- **Contact form uses mailto.** `components/ContactForm.tsx` opens the visitor's mail client — no
+  backend required. To deliver server-side (Formspree, a Route Handler, or Payload), replace the
+  marked block with a `fetch("/api/contact", …)` call. See the comment in that file.
+- **Deploy workflow is stale.** `.github/workflows/deploy.yml` predates this rewrite — review it
+  (Vercel auto-detects Next.js; the workflow may be unnecessary).
+- **Rotate the leaked GitHub PAT** still embedded in `.git/config` and move the remote to SSH.
 
-## Content Management
+## Contact
 
-### Adding/Editing Pages
-
-Edit markdown files in `/content/pages/`:
-
-```markdown
----
-title: Your Page Title
-description: Page description for SEO
----
-
-# Your Page Title
-
-Your content here using Markdown...
-```
-
-### Adding/Editing Services
-
-Edit markdown files in `/content/services/`:
-
-```markdown
----
-title: Service Name
-description: Service description
-icon: 🚀
-features:
-  - Feature 1
-  - Feature 2
-  - Feature 3
----
-
-# Service Name
-
-Your service content...
-```
-
-## Directory Structure
-
-```
-talaria-guild-website/
-├── app/                 # Next.js app directory
-│   ├── page.tsx        # Homepage
-│   ├── layout.tsx      # Root layout with nav/footer
-│   └── globals.css     # Global styles
-├── content/            # Markdown content (CMS)
-│   ├── pages/         # Static pages
-│   └── services/      # Service pages
-├── components/         # React components (future)
-├── public/            # Static assets (images, etc.)
-└── contentlayer.config.ts  # CMS configuration
-```
-
-## Deployment Options
-
-### Option 1: Vercel (Recommended for MVP)
-1. Push to GitHub
-2. Connect repository to Vercel
-3. Auto-deploys on every push
-4. Free tier available
-
-### Option 2: Vultr (Self-hosted)
-1. Build: `npm run build`
-2. Upload `/out` directory to Vultr server
-3. Serve with Nginx or Caddy
-4. Set up GitHub Actions for auto-deploy
-
-## Customization
-
-### Colors/Branding
-Edit `tailwind.config.ts` to customize colors and styling.
-
-### Navigation
-Edit `app/layout.tsx` to modify header navigation and footer.
-
-### Homepage
-Edit `app/page.tsx` to customize homepage content and layout.
-
-## Adding Features
-
-### Contact Form
-Install react-hook-form + Formspree:
-```bash
-npm install react-hook-form @formspree/react
-```
-
-### Analytics
-Add Google Analytics or Plausible in `app/layout.tsx`.
-
-### Blog
-Add blog document type to `contentlayer.config.ts` and create `/content/blog/` directory.
-
-## Support
-
-Questions? Email [your-email@talariaguild.com]
-
-## License
-
-Proprietary - Talaria Guild © 2026
+217-827-3483 · info@talariaworks.com

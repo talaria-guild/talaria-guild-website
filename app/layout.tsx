@@ -1,44 +1,50 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import TopBar from "@/components/TopBar";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Talaria Guild - AI Automation for Service Businesses",
-  description: "24/7 AI-powered automation for cleaning services and property management. Save 15-20 hours per month with intelligent workflow automation.",
+  metadataBase: new URL("https://talariaworks.com"),
+  title: {
+    default: "Talaria Works — Managed IT, security & custom software",
+    template: "%s — Talaria Works",
+  },
+  description:
+    "Managed IT and security for the systems you run every day, and custom software for the ones you wish you had. Based in Illinois. We design it, deploy it, and keep it running.",
+  openGraph: {
+    title: "Talaria Works — Managed IT, security & custom software",
+    description:
+      "Managed IT, security, and custom software for organizations in Illinois and beyond.",
+    url: "https://talariaworks.com",
+    siteName: "Talaria Works",
+    type: "website",
+  },
+  icons: { icon: "/assets/logo-mark.png" },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        <nav className="border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16 items-center">
-              <div className="flex-shrink-0 font-bold text-xl">
-                Talaria Guild
-              </div>
-              <div className="hidden md:block">
-                <div className="ml-10 flex items-baseline space-x-4">
-                  <a href="/" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Home</a>
-                  <a href="/services" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Services</a>
-                  <a href="/about" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">About</a>
-                  <a href="/contact" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Contact</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </nav>
-        {children}
-        <footer className="border-t mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <p className="text-center text-gray-600">
-              © {new Date().getFullYear()} Talaria Guild. All rights reserved.
-            </p>
-          </div>
-        </footer>
+      <head>
+        {/* Webfonts for the _ds design system. Loaded here because Turbopack drops the
+            remote @import inside _ds/tokens/fonts.css when it inlines the design system.
+            Families must match the _ds typography tokens (Cinzel / Libre Franklin / JetBrains Mono). */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Libre+Franklin:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        />
+      </head>
+      <body>
+        <div className="site-shell">
+          <div className="gold-bar" />
+          <TopBar />
+          <Header />
+          <main style={{ flex: 1 }}>{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );

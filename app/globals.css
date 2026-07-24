@@ -1,27 +1,88 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Design system (tokens + base) — imported intact from _ds; do not edit there,
+   re-export from Claude Design to update. Must stay first (CSS @import ordering). */
+@import "../_ds/talaria-works-design-system-1fb8d0c4-f131-48a9-a497-8d547192bb36/styles.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---------------------------------------------------------------------------
+   Site layer — component classes carrying the exact values from the Claude
+   Design export, with real :hover / :focus / :active states.
+   --------------------------------------------------------------------------- */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* This site's links are all chrome (nav / buttons / cards); none should get the
+   DS default underline-on-hover. Individual color hovers are set per class. */
+a { text-decoration: none; }
+a:hover { text-decoration: none; }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
+input, textarea { font-family: var(--font-sans); font-size: var(--text-md); }
+input::placeholder, textarea::placeholder { color: var(--text-subtle); }
+button { font-family: var(--font-sans); }
+img { max-width: 100%; }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* Layout shell */
+.site-shell { display: flex; flex-direction: column; min-height: 100vh; font-family: var(--font-sans); color: var(--text-body); }
+.gold-bar { height: 3px; background: var(--accent); flex: none; }
+.container-xl { max-width: var(--container-xl); margin: 0 auto; }
+.container-lg { max-width: var(--container-lg); margin: 0 auto; }
+.container-md { max-width: var(--container-md); margin: 0 auto; }
+
+/* Eyebrow / kicker (mono uppercase, optional gold dash) */
+.eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
+.eyebrow-dash { width: 28px; height: 2px; background: var(--accent); display: block; flex: none; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; text-decoration: none; font-family: var(--font-sans); font-weight: 600; border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: background var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+.btn--lg { font-size: var(--text-md); padding: 15px 24px; min-height: 48px; }
+.btn--md { font-size: var(--text-sm); padding: 0 20px; min-height: 44px; }
+.btn--gold { color: var(--accent-contrast); background: var(--accent); box-shadow: var(--shadow-sm); }
+.btn--gold:hover { background: var(--accent-hover); box-shadow: var(--shadow-gold); color: var(--accent-contrast); }
+.btn--gold:active { background: var(--accent-active); transform: translateY(1px); }
+.btn--ghost-dark { color: var(--white); background: transparent; border: 1px solid var(--border-dark); }
+.btn--ghost-dark:hover { background: var(--ink-900); border-color: var(--silver-600); color: var(--white); }
+
+/* Header nav */
+.nav-link { position: relative; font-size: var(--text-sm); font-weight: 600; text-decoration: none; padding: 12px 14px; border-radius: var(--radius-sm); min-height: 44px; display: inline-flex; align-items: center; color: var(--text-body); transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+.nav-link:hover { background: var(--surface-hover); color: var(--text-strong); }
+.nav-link[data-active="true"] { color: var(--text-strong); }
+.nav-bar { position: absolute; left: 14px; right: 14px; bottom: 6px; height: 2px; background: transparent; }
+.nav-link[data-active="true"] .nav-bar { background: var(--accent); }
+
+/* Interactive pillar card (home) */
+.card-link { display: flex; flex-direction: column; gap: 16px; text-decoration: none; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(26px, 3vw, 38px); color: var(--text-body); transition: box-shadow var(--dur-normal) var(--ease-standard), border-color var(--dur-normal) var(--ease-standard); }
+.card-link:hover { box-shadow: var(--shadow-md); border-color: var(--border-default); color: var(--text-body); }
+.card-link__more { margin-top: auto; padding-top: 6px; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: var(--text-brand); }
+
+/* Gold icon chip */
+.icon-chip { display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: var(--gold-50); border: 1px solid var(--gold-200); color: var(--gold-700); flex: none; }
+
+/* Static feature card */
+.feature-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-xs); padding: 24px; display: flex; flex-direction: column; gap: 9px; }
+
+/* Tier / coverage-level card */
+.tier-card { position: relative; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px, 3vw, 30px); display: flex; flex-direction: column; gap: 16px; }
+.tier-card--featured { border-color: var(--border-gold); box-shadow: var(--shadow-md); }
+.tier-badge { position: absolute; top: -11px; left: clamp(24px, 3vw, 30px); background: var(--accent); color: var(--accent-contrast); font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.16em; text-transform: uppercase; font-weight: 500; padding: 4px 10px; border-radius: var(--radius-pill); }
+.tier-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.tier-list li { display: flex; gap: 10px; font-size: var(--text-sm); color: var(--text-body); }
+
+/* Gold text link */
+.link-gold { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); font-weight: 600; color: var(--text-brand); text-decoration: none; transition: color var(--dur-fast) var(--ease-standard); }
+.link-gold:hover { color: var(--accent-active); text-decoration: none; }
+.link-gold--mono { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; }
+
+/* Chrome links (top bar + footer, on dark) */
+.chrome-link { display: inline-flex; align-items: center; gap: 9px; color: var(--silver-300); text-decoration: none; transition: color var(--dur-fast) var(--ease-standard); }
+.chrome-link:hover { color: var(--gold-400); text-decoration: none; }
+
+/* Contact method card */
+.contact-card { display: flex; align-items: center; gap: 16px; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-xs); padding: 18px 20px; text-decoration: none; color: var(--text-body); transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); }
+.contact-card:hover { border-color: var(--border-default); box-shadow: var(--shadow-sm); color: var(--text-body); }
+
+/* Form fields */
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label { font-size: var(--text-sm); font-weight: 600; color: var(--text-strong); }
+.field-input { width: 100%; min-height: 44px; padding: 11px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text-strong); outline: none; font-family: var(--font-sans); font-size: var(--text-md); transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); }
+.field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+textarea.field-input { min-height: auto; padding: 12px 14px; line-height: 1.6; resize: vertical; }
+
+/* Dark section wrapper + faint gear watermark */
+.section-dark { position: relative; background: var(--ink-950); color: var(--text-on-dark); overflow: hidden; }
+.section-dark__mark { position: absolute; pointer-events: none; }

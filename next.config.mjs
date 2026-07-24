@@ -1,11 +1,4 @@
-import { withContentlayer } from 'next-contentlayer2'
-
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'export', // Static export for easy hosting
-  images: {
-    unoptimized: true, // Required for static export
-  },
-}
+const nextConfig = {};
 
-export default withContentlayer(nextConfig)
+export default nextConfig;
