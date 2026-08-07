@@ -1,0 +1,155 @@
+name: website
+
+# Build and verify. Deploys live in website-deploy-{dev,prod}.yml, which are
+# triggered by this workflow finishing rather than by the push — so what gets
+# deployed is always an image this workflow actually built and checked.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push makes an in-flight run irrelevant. (The DEPLOY workflows queue
+# instead — see the note there. Cancelling a build is free; cancelling a deploy
+# is not.)
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # `next build` typechecks too, but it does so partway through a
+      # multi-minute build. Running tsc first turns a type error into a
+      # 20-second failure with a clean message instead of one buried in build
+      # output.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      # ── The check that protects the deploy model ──────────────────────────
+      #
+      # Everything downstream rests on one property: this app reads no
+      # environment variable at BUILD time, so a single artifact is correct in
+      # both environments and prod can promote dev's exact image.
+      #
+      # That property is invisible when it breaks. Delete `export const
+      # dynamic` from app/robots.ts and nothing fails — Next just prerenders it
+      # against this runner's empty environment, and from then on BOTH sites
+      # serve whatever answer got frozen here. If that answer is `Disallow: /`,
+      # production quietly deletes itself from Google and the deploy is green
+      # the whole time.
+      #
+      # So run the built server twice, once per environment, and check it
+      # actually answers differently. This tests the behaviour rather than the
+      # shape of `next build`'s route-table output, which is formatting and
+      # changes between Next versions.
+      - name: Prove one build serves both environments
+        run: |
+          set -euo pipefail
+
+          # The standalone bundle is what ships; testing `next start` instead
+          # would verify a server the image does not contain.
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+          robots_under() {
+            SITE_ENV="$1" SITE_URL="$2" PORT=3210 \
+              node .next/standalone/server.js >/tmp/server-$1.log 2>&1 &
+            local pid=$!
+            for _ in $(seq 1 30); do
+              curl -fsS -o /dev/null http://127.0.0.1:3210/ 2>/dev/null && break
+              sleep 1
+            done
+            curl -fsS http://127.0.0.1:3210/robots.txt || { cat /tmp/server-$1.log; kill $pid; exit 1; }
+            kill $pid 2>/dev/null || true
+            wait $pid 2>/dev/null || true
+          }
+
+          echo "── as production ──"
+          PROD_ROBOTS="$(robots_under production https://talariaworks.com)"
+          echo "$PROD_ROBOTS"
+          case "$PROD_ROBOTS" in
+            *"Allow: /"*) ;;
+            *) echo "FATAL: production robots.txt does not allow crawling."; exit 1 ;;
+          esac
+          case "$PROD_ROBOTS" in
+            *"Disallow: /"*) echo "FATAL: production robots.txt disallows crawling."; exit 1 ;;
+          esac
+
+          echo "── as development ──"
+          DEV_ROBOTS="$(robots_under development https://dev.talariaworks.com)"
+          echo "$DEV_ROBOTS"
+          case "$DEV_ROBOTS" in
+            *"Disallow: /"*) ;;
+            *) echo "FATAL: non-production robots.txt does not disallow crawling."
+               echo "       dev.talariaworks.com would be indexed as a duplicate"
+               echo "       of the real site. Check lib/site.ts and that"
+               echo "       app/robots.ts still exports dynamic = 'force-dynamic'."
+               exit 1 ;;
+          esac
+
+          echo "One build, two behaviours — the image is environment-neutral."
+
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    # Only after the code is known good — a green image from red code is worse
+    # than no image.
+    needs: verify
+    permissions:
+      contents: read
+      packages: write
+
+    # Whether this run publishes. Declared once because the GHCR login and the
+    # build's `push` input have to agree: pushing without having logged in gets
+    # an anonymous registry token and a 403. Those two conditions drifted apart
+    # exactly that way in msp-tools once already.
+    env:
+      PUBLISH: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and push on main)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # PRs build to prove the Dockerfile still works, but publish nothing.
+          push: ${{ env.PUBLISH }}
+          tags: |
+            ghcr.io/talaria-guild/talaria-guild-website:latest
+            ghcr.io/talaria-guild/talaria-guild-website:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

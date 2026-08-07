@@ -1,0 +1,82 @@
+# Dev deployment — dev.talariaworks.com
+#
+# Lives on talaria-portal at /opt/talaria-website-dev/docker-compose.yml. Kept
+# in git because the server has historically been the only record of its own
+# configuration, and /opt is littered with .backup / .new / .pre-otel variants
+# that disagree with each other.
+#
+# ── One image, both environments ────────────────────────────────────────────
+#
+# The same SHA-tagged artifact serves dev and prod. That holds only because the
+# site reads no environment variable at build time — the two it does read
+# (SITE_URL, SITE_ENV, in lib/site.ts) are consumed by force-dynamic routes at
+# request time. Follow msp-tools/client-portal here, not basics-book: the
+# latter bakes NEXT_PUBLIC_* into its client bundle, which is what let a
+# dev-keyed build reach prod on 2026-06-08 and is why its "rollback" cannot
+# actually roll back.
+
+services:
+  website:
+    # `:-latest` on dev only. Dev is fed by CI, which always passes an explicit
+    # SHA; the fallback exists so a human can `docker compose up` on the box
+    # while diagnosing something. Prod deliberately has no fallback — see the
+    # `${TAG:?}` in ../prod/docker-compose.yml.
+    image: ghcr.io/talaria-guild/talaria-guild-website:${TAG:-latest}
+    container_name: talaria-website-dev
+    restart: unless-stopped
+
+    ports:
+      # localhost-bound. Caddy is the only route in from outside; nothing here
+      # publishes on 0.0.0.0 the way intake-api used to. Docker writes its own
+      # iptables rules that bypass UFW, so the bind address is the actual
+      # control, not the firewall.
+      # 3051 for dev — 3050 is prod. 3040/3041 belong to client-portal.
+      - '127.0.0.1:3051:3000'
+
+    environment:
+      # Belt to the Caddy vhost's braces: robots.txt says Disallow because
+      # SITE_ENV is not "production" here (lib/site.ts fails closed), and the
+      # vhost additionally sends X-Robots-Tag: noindex on every response.
+      # dev.talariaworks.com being indexed as a duplicate of the real site is
+      # slow to detect and slow to undo.
+      SITE_ENV: development
+      SITE_URL: https://dev.talariaworks.com
+
+    healthcheck:
+      # `/` is the page that actually matters on a marketing site, so it is the
+      # honest liveness signal. <500 passes — a 200 or a redirect both mean the
+      # server is serving.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    # ─── Blast-radius containment ────────────────────────────────────────────
+    # The host has no swap, and most containers on it declare no memory limit —
+    # so under pressure the kernel OOM killer picks its victim by footprint
+    # rather than by fault, and that victim would be someone else's service. A
+    # hard cap inverts the failure mode: if this leaks, its own cgroup kills it
+    # and Docker restarts it. 256 MB is generous for a static marketing site; a
+    # Next standalone server idles near 90 MB.
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+# No `networks:` block, and no database. Compose gives this project its own
+# private bridge; this stack touches no other application's network and no
+# shared Postgres. (The shared talaria-postgres superuser credential has been
+# burned since the 2026-08-03 compromise and is still unrotated — new stacks
+# must not depend on it.)

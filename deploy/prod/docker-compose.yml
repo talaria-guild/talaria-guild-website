@@ -1,0 +1,64 @@
+# Production deployment — talariaworks.com
+#
+# Lives on talaria-portal at /opt/talaria-website-prod/docker-compose.yml. Kept
+# in git for the same reason as the dev file: the box has historically been the
+# only record of its own configuration.
+#
+# Identical to ../dev/docker-compose.yml except for the tag guard, the port,
+# the SITE_* values, and slightly more headroom. That similarity is the point —
+# prod runs the exact image dev has been serving, so the only thing that should
+# differ between them is the environment they are told they are in.
+
+services:
+  website:
+    # `${TAG:?}` — NO `:-latest` fallback, unlike dev.
+    #
+    # `latest` is a moving tag: it cannot be rolled back to, and a workflow bug
+    # that failed to pass TAG would silently deploy whatever happened to be
+    # newest instead of failing. With this, compose refuses to run at all and
+    # the deploy stops loudly. The cost is that every compose command on this
+    # box needs TAG in the environment — which is why the deploy workflow
+    # writes TAG into .env (compose reads that automatically), so someone
+    # SSHing in during an incident can still run `logs` and `ps`.
+    image: ghcr.io/talaria-guild/talaria-guild-website:${TAG:?TAG is required — never deploy prod from :latest}
+    container_name: talaria-website
+    restart: unless-stopped
+
+    ports:
+      # localhost-bound; Caddy is the sole ingress. 3050 for prod, 3051 dev.
+      - '127.0.0.1:3050:3000'
+
+    environment:
+      # The one positive opt-in to being indexed. lib/site.ts fails closed, so
+      # this exact string is what separates the real site from every other
+      # instance of the same image.
+      SITE_ENV: production
+      SITE_URL: https://talariaworks.com
+
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    # Same reasoning as dev — the host has no swap, so an unbounded container
+    # gets someone else's service OOM-killed by footprint. A little more room
+    # than dev because this one takes real traffic.
+    mem_limit: 384m
+    memswap_limit: 384m
+    cpus: 1.0
+
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+# No `networks:` block and no database, deliberately — see ../dev/docker-compose.yml.
