@@ -4,10 +4,11 @@ import { Eyebrow } from "@/components/ui";
 import ContactForm from "@/components/ContactForm";
 import { PHONE, PHONE_HREF, EMAIL, EMAIL_HREF } from "@/lib/content";
 
+// Built from the same constants the page body renders, so the number in search
+// results can never drift from the number on the page.
 export const metadata: Metadata = {
   title: "Contact",
-  description:
-    "Tell us what you're working on. We'll get back to you within one business day — no obligation. Call 217-827-3483 or email info@talariaworks.com.",
+  description: `Tell us what you're working on. We'll get back to you within one business day — no obligation. Call ${PHONE} or email ${EMAIL}.`,
 };
 
 const cardLabel: React.CSSProperties = {

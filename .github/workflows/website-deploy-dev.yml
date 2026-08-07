@@ -1,0 +1,159 @@
+name: website · deploy dev
+
+# Auto-deploys dev.talariaworks.com on every merge to main.
+#
+# Triggered by the `website` workflow FINISHING SUCCESSFULLY rather than by the
+# push itself, so this deploys the image CI actually built and verified. A
+# push-triggered deploy would race the build and could pull a tag that does not
+# exist yet — or, worse, silently fall back to a stale `latest`.
+on:
+  workflow_run:
+    workflows: ['website']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to deploy (commit SHA). Defaults to latest.'
+        required: false
+
+# QUEUE, never cancel. Two merges landing close together used to fire two
+# independent deploys with no ordering between them on basics-book: both ran
+# `docker compose up`, and whichever SSH session finished last won regardless
+# of which commit was newer. Queuing means main's HEAD is what's live once the
+# queue drains. This is the one place where `cancel-in-progress: true` —
+# correct for the build workflow — would be actively harmful.
+concurrency:
+  group: website-deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to dev.talariaworks.com
+    runs-on: ubuntu-latest
+
+    # Gate on the build having passed. workflow_run fires on completion of any
+    # conclusion, including failure and cancellation, so without this a red
+    # build would still deploy.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    # Scopes the secrets below and gives somewhere to add required reviewers
+    # later without touching this file.
+    environment: website-dev
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Resolve image tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+            [ -n "$TAG" ] || TAG="latest"
+          else
+            # The commit CI built — not `latest`, which is a moving target and
+            # cannot be rolled back to.
+            TAG="${{ github.event.workflow_run.head_sha }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Deploying tag: $TAG"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          GHCR_ACTOR: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          envs: TAG,GHCR_ACTOR,GHCR_TOKEN
+          script: |
+            # Stop at the first failure rather than limping forward on stale
+            # state. basics-book lost days to the opposite: a `docker compose
+            # pull` denied by an expired GHCR credential went unnoticed because
+            # down/up recreated the container from a locally cached image, the
+            # health check passed either way, and the job reported success
+            # while deploying nothing.
+            set -euo pipefail
+
+            cd /opt/talaria-website-dev
+
+            # Fresh login every run with the ephemeral Actions token. Scoped to
+            # this job, never stored on the host, cannot go stale between
+            # deploys the way a hand-seeded credential can.
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_ACTOR}" --password-stdin
+
+            # No .env is written here, and that is worth stating plainly: this
+            # site has no secrets and no database. SITE_ENV and SITE_URL are
+            # non-secret and live in the compose file, in git, where they are
+            # reviewable in a diff rather than only on disk.
+            export TAG="${TAG}"
+            docker compose pull
+            docker compose up -d
+
+            # Poll rather than sleep-and-hope. 60s: the container's start_period
+            # is 20s, so a fixed sleep either wastes time or checks too early.
+            echo "Waiting for health..."
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://localhost:3051/; then
+                echo "Healthy after ~$((i * 2))s"
+                break
+              fi
+              if [ "$i" = "30" ]; then
+                echo "FAILED: no healthy response after 60s"
+                docker compose logs --tail 60 website
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # Prove the deployed image is the one we asked for, not a cached
+            # older layer that happened to already be present.
+            RUNNING=$(docker inspect --format '{{.Config.Image}}' talaria-website-dev)
+            echo "Running image: ${RUNNING}"
+            case "${RUNNING}" in
+              *":${TAG}") echo "Tag confirmed." ;;
+              *) echo "FATAL: expected tag ${TAG}, got ${RUNNING}"; exit 1 ;;
+            esac
+
+            docker compose ps
+
+      - name: Smoke test the public URL
+        run: |
+          set -euo pipefail
+          URL="https://dev.talariaworks.com"
+
+          BODY=$(mktemp)
+          code=$(curl -fsS --max-time 20 -o "$BODY" -w '%{http_code}' "$URL/")
+          echo "/ -> $code"
+
+          # Confirm it is OUR app answering and not a stray vhost or a parking
+          # page — a 200 alone proves only that something is listening.
+          TITLE=$(grep -oiE '<title>[^<]*</title>' "$BODY" | head -1)
+          echo "title: ${TITLE:-<none>}"
+          case "$TITLE" in
+            *"Talaria Works"*) echo "Confirmed: our app is serving." ;;
+            *) echo "FATAL: unrecognised app at $URL — got '${TITLE:-<no title>}'"; exit 1 ;;
+          esac
+
+          # Dev MUST NOT be indexable. This is the end-to-end version of the
+          # build-time check in website.yml: it proves the running container was
+          # actually given SITE_ENV=development, not merely that the code can
+          # respond correctly when it is.
+          ROBOTS=$(curl -fsS --max-time 20 "$URL/robots.txt")
+          echo "robots.txt: $ROBOTS"
+          case "$ROBOTS" in
+            *"Disallow: /"*) echo "Dev is closed to crawlers." ;;
+            *) echo "FATAL: dev.talariaworks.com is CRAWLABLE. It would be indexed"
+               echo "       as a duplicate of the real site. Check SITE_ENV in"
+               echo "       deploy/dev/docker-compose.yml."
+               exit 1 ;;
+          esac

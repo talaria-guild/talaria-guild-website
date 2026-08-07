@@ -1,0 +1,271 @@
+name: website · deploy prod
+
+# Deploys talariaworks.com when a GitHub Release is published.
+#
+# ── Promote, never rebuild ───────────────────────────────────────────────────
+#
+# This workflow does NOT build anything. It resolves the release tag to its
+# commit SHA and deploys the image `website.yml` already built and verified for
+# that exact commit — the same bytes dev.talariaworks.com has been serving.
+#
+# That is the deliberate difference from basics-book, whose release workflow
+# rebuilds because it must: its frontend bakes NEXT_PUBLIC_* into the client
+# bundle at build time, so a prod image is not the same artifact as a dev image
+# even from an identical commit. A rebuild is also a fresh chance for a
+# toolchain or base-image change to alter what ships, and the whole dev soak
+# counts for less. This site reads its per-environment config from the server
+# environment at request time (lib/site.ts), which website.yml proves on every
+# run, so promotion is sound and rollback is a pure retag.
+#
+# ── Cutting a release means shipping ─────────────────────────────────────────
+#
+#   git tag v1.0.0 && git push origin v1.0.0
+#   gh release create v1.0.0 --generate-notes
+#
+# Prereleases are ignored. The `website-prod` environment gate still applies,
+# so add required reviewers there for a second pair of eyes.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (commit SHA) to deploy. Break-glass / rollback — prefer cutting a release.'
+        required: true
+
+# QUEUE, never cancel — same reasoning as the dev workflow, and it matters more
+# here. Cancelling a prod deploy mid-SSH could leave the old container stopped
+# with nothing having replaced it.
+concurrency:
+  group: website-deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to talariaworks.com
+    runs-on: ubuntu-latest
+
+    # Full releases only. A prerelease is explicitly "not for production".
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !github.event.release.prerelease
+
+    # Scopes the deploy secrets and is where required reviewers are configured.
+    environment: website-prod
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Resolve image tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            # The commit the release tag points at. `website.yml` tags images by
+            # commit SHA, so this is the artifact built for exactly this code —
+            # not a rebuild, and not a moving `latest`.
+            TAG="${{ github.sha }}"
+          fi
+          [ -n "$TAG" ] || { echo "FATAL: empty tag"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release  : ${{ github.event.release.tag_name || 'workflow_dispatch' }}"
+          echo "Image tag: $TAG"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the image exists before touching production
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/talaria-guild/talaria-guild-website:${TAG}"
+          # Fail HERE, on the runner, rather than three steps later inside the
+          # SSH session with the old container already stopped. Tagging a commit
+          # CI never built (a branch commit, or one from before this workflow
+          # existed) is an easy mistake and this is the cheap place to catch it.
+          if ! docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "FATAL: no image published for tag ${TAG}."
+            echo "       Expected: ${IMAGE}"
+            echo ""
+            echo "Releases must point at a commit on main that the 'website'"
+            echo "workflow built successfully. Check that the build for this"
+            echo "commit passed before re-running."
+            exit 1
+          fi
+          echo "Image found: ${IMAGE}"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          RELEASE: ${{ github.event.release.tag_name || 'manual' }}
+          GHCR_ACTOR: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          envs: TAG,RELEASE,GHCR_ACTOR,GHCR_TOKEN
+          script: |
+            # Stop at the first failure rather than limping forward on stale
+            # state — see the dev workflow for the basics-book incident this
+            # prevents.
+            set -euo pipefail
+
+            cd /opt/talaria-website-prod
+
+            echo "=== Deploying ${RELEASE} (image ${TAG}) ==="
+
+            # Fresh login every run with the ephemeral Actions token. Scoped to
+            # this job, never stored on the host, cannot go stale between
+            # deploys the way a hand-seeded credential can.
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_ACTOR}" --password-stdin
+
+            # Record what is currently live, so a failed health check can go
+            # back to it. Empty on the very first deploy, which is handled.
+            # This is a TRUE rollback because tags are immutable commit SHAs —
+            # unlike basics-book, where prod sitting on a mutable `:prod` tag
+            # makes the equivalent step re-pull the image that was just
+            # overwritten.
+            PREV_TAG=$(docker inspect --format '{{.Config.Image}}' talaria-website 2>/dev/null | sed 's/.*://' || true)
+            echo "Currently live: ${PREV_TAG:-<nothing>}"
+
+            # Write TAG to .env, for two reasons.
+            #
+            # Operationally: `${TAG:?}` in the compose file is what stops a
+            # stray deploy landing on :latest, but it also makes EVERY compose
+            # command need TAG in the environment — `ps`, `logs`, `exec`, all
+            # of it. Someone SSHing in to diagnose an incident would hit
+            # "required variable TAG is missing a value" before they could read
+            # a single log line. Compose reads .env automatically, so writing
+            # it here keeps the guard and makes the ordinary commands work.
+            #
+            # For the record: the box otherwise has no idea which build it is
+            # running. `docker inspect` can tell you, but only while the
+            # container is up.
+            #
+            # A shell-exported TAG still wins over this (Compose precedence),
+            # which is what the rollback path below relies on.
+            umask 077
+            printf 'TAG=%s\n' "${TAG}" > .env
+            chmod 600 .env
+
+            export TAG="${TAG}"
+
+            # Pull before anything else changes, so a registry problem fails
+            # while the current release is still serving untouched.
+            docker compose pull
+            docker compose up -d
+
+            # ── Health, with rollback ────────────────────────────────────────
+            wait_healthy() {
+              for i in $(seq 1 30); do
+                if curl -fsS -o /dev/null http://localhost:3050/; then
+                  echo "Healthy after ~$((i * 2))s"
+                  return 0
+                fi
+                sleep 2
+              done
+              return 1
+            }
+
+            echo "Waiting for health…"
+            if wait_healthy; then
+              RUNNING=$(docker inspect --format '{{.Config.Image}}' talaria-website)
+              echo "Running image: ${RUNNING}"
+              case "${RUNNING}" in
+                *":${TAG}") echo "Tag confirmed." ;;
+                *) echo "FATAL: expected tag ${TAG}, got ${RUNNING}"; exit 1 ;;
+              esac
+              echo "✅ ${RELEASE} is live."
+              docker compose ps
+            else
+              echo "❌ No healthy response after 60s."
+              docker compose logs --tail 80 website
+
+              if [ -n "${PREV_TAG}" ] && [ "${PREV_TAG}" != "${TAG}" ]; then
+                echo "↩️  Rolling back to ${PREV_TAG}…"
+                export TAG="${PREV_TAG}"
+                # Correct the on-disk record too. Without this .env still names
+                # the tag that just FAILED, so the next person to run a compose
+                # command on this box operates on the wrong image — and the
+                # file that is supposed to say what is deployed would be
+                # actively lying at the exact moment someone is debugging.
+                printf 'TAG=%s\n' "${PREV_TAG}" > .env
+                docker compose up -d
+                if wait_healthy; then
+                  echo "Rolled back to ${PREV_TAG} and healthy."
+                  echo "   Nothing else to undo — this site holds no state."
+                else
+                  echo "Rollback ALSO unhealthy — manual intervention needed."
+                fi
+              else
+                echo "No previous tag to roll back to (first deploy)."
+              fi
+              exit 1
+            fi
+
+      - name: Smoke test the public URL
+        run: |
+          set -euo pipefail
+          URL="https://talariaworks.com"
+
+          # ── Prove we are testing OUR app, on OUR host ────────────────────
+          # `%{remote_ip}` reports the address curl actually connected to,
+          # rather than resolving separately and hoping the two agree. It also
+          # avoids depending on `getent`, which does not exist everywhere.
+          BODY=$(mktemp)
+          RESOLVED=$(curl -fsS --max-time 20 -o "$BODY" -w '%{remote_ip}' "$URL/")
+          echo "talariaworks.com served by -> ${RESOLVED:-<unresolved>}"
+          if [ "$RESOLVED" != "178.156.254.178" ]; then
+            echo "FATAL: talariaworks.com is not being served by the deploy host."
+            echo "       Either DNS has not been pointed here, or Cloudflare's"
+            echo "       proxy was turned on (which also breaks ACME renewal)."
+            exit 1
+          fi
+
+          TITLE=$(grep -oiE '<title>[^<]*</title>' "$BODY" | head -1)
+          echo "title: ${TITLE:-<none>}"
+          case "$TITLE" in
+            *"Talaria Works"*) echo "Confirmed: our app is serving." ;;
+            *) echo "FATAL: unrecognised app at $URL — got '${TITLE:-<no title>}'"; exit 1 ;;
+          esac
+
+          # Production MUST be indexable. The dev workflow asserts the mirror
+          # image of this. Between them, a SITE_ENV wired to the wrong
+          # environment fails a deploy instead of silently costing the company
+          # its search presence — the direction that is slow to notice and slow
+          # to undo.
+          ROBOTS=$(curl -fsS --max-time 20 "$URL/robots.txt")
+          echo "robots.txt: $ROBOTS"
+          case "$ROBOTS" in
+            *"Disallow: /"*)
+              echo "FATAL: production is serving Disallow: / — the public site"
+              echo "       has just told every search engine to drop it."
+              echo "       SITE_ENV must be exactly 'production' in"
+              echo "       deploy/prod/docker-compose.yml."
+              exit 1 ;;
+            *"Allow: /"*) echo "Production is open to crawlers." ;;
+            *) echo "FATAL: unrecognised robots.txt"; exit 1 ;;
+          esac
+
+          # www must land on the canonical hostname rather than serving a
+          # second copy of the site.
+          WWW=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 20 "https://www.talariaworks.com/")
+          echo "www -> $WWW"
+          case "$WWW" in
+            30*"https://talariaworks.com"*) echo "www redirects to the apex." ;;
+            *) echo "WARNING: www.talariaworks.com did not redirect to the apex (got '$WWW')."
+               echo "         Check the Caddy block from deploy/prod/setup-host.sh." ;;
+          esac

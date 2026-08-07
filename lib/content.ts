@@ -83,7 +83,7 @@ export const tiers = [
   },
 ] as const;
 
-export const PHONE = "217-827-3483";
-export const PHONE_HREF = "tel:2178273483";
+export const PHONE = "217-699-1337";
+export const PHONE_HREF = "tel:2176991337";
 export const EMAIL = "info@talariaworks.com";
 export const EMAIL_HREF = "mailto:info@talariaworks.com";
