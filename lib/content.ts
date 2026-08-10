@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ShieldCheck, SquareCode, Radar, Activity, Users, DatabaseBackup,
-  MailWarning, Headset, FileCheck2, LayoutDashboard, Workflow, Sparkles,
+  MailWarning, Headset, LayoutDashboard, Workflow, Sparkles,
   GraduationCap, GitMerge,
 } from "lucide-react";
 
@@ -46,7 +46,9 @@ export const managedFeatures: Feature[] = [
   { icon: DatabaseBackup, title: "Backup & disaster recovery", body: "Immutable copies held off-site and restore drills you actually see the results of — a backup nobody has tested is a guess." },
   { icon: MailWarning, title: "Email security & awareness training", body: "Filtering ahead of the inbox, plus short simulated-phishing coaching that teaches staff rather than shames them." },
   { icon: Headset, title: "Helpdesk your staff will use", body: "Day-to-day requests answered by engineers who already know your setup, so nobody has to re-explain the printer every time." },
-  { icon: FileCheck2, title: "Compliance-ready operations", body: "Controls, documentation, and evidence kept audit-ready for regulated work such as HIPAA and CMMC — before the questionnaire arrives." },
+  // Parked until we can actually operate a compliance practice. To restore:
+  // uncomment, and re-add FileCheck2 to the lucide-react import above.
+  // { icon: FileCheck2, title: "Compliance-ready operations", body: "Controls, documentation, and evidence kept audit-ready for regulated work such as HIPAA and CMMC — before the questionnaire arrives." },
 ];
 
 /** Services — Software & AI engineering capabilities. */
@@ -74,13 +76,15 @@ export const tiers = [
     items: ["Everything in the security baseline", "Unlimited helpdesk and onboarding support", "Microsoft 365, device, and identity administration", "Backup with verified restore drills"],
     featured: true,
   },
-  {
-    level: "Level 03",
-    name: "Compliance-ready, 24/7",
-    blurb: "For regulated work, where proving the control matters as much as having it.",
-    items: ["Everything in fully managed IT", "Round-the-clock detection and response", "Control mapping and audit evidence", "Incident response plan, rehearsed"],
-    featured: false,
-  },
+  // Parked until we can actually operate a compliance practice. To restore:
+  // uncomment, and change the Services heading back to "Three ways to be covered."
+  // {
+  //   level: "Level 03",
+  //   name: "Compliance-ready, 24/7",
+  //   blurb: "For regulated work, where proving the control matters as much as having it.",
+  //   items: ["Everything in fully managed IT", "Round-the-clock detection and response", "Control mapping and audit evidence", "Incident response plan, rehearsed"],
+  //   featured: false,
+  // },
 ] as const;
 
 export const PHONE = "217-699-1337";
