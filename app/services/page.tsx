@@ -67,12 +67,14 @@ export default function ServicesPage() {
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
             <div>
               <div className="tw-eyebrow" style={{ marginBottom: 12 }}>Coverage levels</div>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, letterSpacing: "-0.015em", fontSize: "clamp(22px,2.6vw,30px)", color: "var(--text-strong)", margin: 0 }}>Three ways to be covered.</h3>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, letterSpacing: "-0.015em", fontSize: "clamp(22px,2.6vw,30px)", color: "var(--text-strong)", margin: 0 }}>Two ways to be covered.</h3>
             </div>
             <a href="/contact" className="link-gold">Request pricing<ArrowRight size={15} strokeWidth={1.75} /></a>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))", gap: "clamp(18px,2vw,24px)", marginTop: "clamp(24px,3vw,36px)" }}>
+          {/* Capped so two cards don't stretch to half a 1320px container each.
+              Raise or drop this if a third coverage level comes back. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))", gap: "clamp(18px,2vw,24px)", marginTop: "clamp(24px,3vw,36px)", maxWidth: 880 }}>
             {tiers.map((t) => (
               <div key={t.name} className={`tier-card${t.featured ? " tier-card--featured" : ""}`}>
                 {t.featured && <div className="tier-badge">Most chosen</div>}
