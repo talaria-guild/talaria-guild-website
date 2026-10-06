@@ -26,7 +26,7 @@ export const pillars = [
 /** Home — trust bar. */
 export const trust = [
   { title: "About 40 years of IT experience", body: "Between us, mostly in large enterprise environments. We bring the same habits to offices with one to fifty computers." },
-  { title: "Based in Central Illinois", body: "We work Central time and answer our own phone." },
+  { title: "Based in Central Illinois", body: "We're local, we work Central time, and you deal with us directly." },
   { title: "Same people, start to finish", body: "Whoever plans your project also supports it after launch." },
   { title: "Plain answers", body: "We put recommendations in writing and skip the jargon." },
 ] as const;
