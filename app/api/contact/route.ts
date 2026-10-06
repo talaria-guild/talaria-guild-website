@@ -37,9 +37,14 @@ function rateLimited(ip: string): boolean {
   return false;
 }
 
-/** Caddy is the only ingress and sets X-Forwarded-For; the first entry is the visitor. */
+/**
+ * The visitor as Caddy saw them. Caddy is the only ingress and, with no
+ * trusted_proxies configured, discards any client-sent X-Forwarded-For and
+ * writes the peer address. Taking the LAST entry stays correct even if that
+ * ever changes to appending, where the first entry would be attacker-chosen.
+ */
 function clientIp(req: Request): string | null {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip");
+  return req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || req.headers.get("x-real-ip");
 }
 
 function field(data: Record<string, unknown>, key: keyof typeof LIMITS): string | undefined {

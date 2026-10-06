@@ -105,7 +105,7 @@ jobs:
           echo "Image found: ${IMAGE}"
 
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           RELEASE: ${{ github.event.release.tag_name || 'manual' }}
