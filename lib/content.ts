@@ -74,13 +74,6 @@ export const tiers = [
     items: ["Everything in the security baseline", "Unlimited helpdesk and onboarding support", "Microsoft 365, device, and identity administration", "Backup with verified restore drills"],
     featured: true,
   },
-  {
-    level: "Level 03",
-    name: "Compliance-ready, 24/7",
-    blurb: "For regulated work, where proving the control matters as much as having it.",
-    items: ["Everything in fully managed IT", "Round-the-clock detection and response", "Control mapping and audit evidence", "Incident response plan, rehearsed"],
-    featured: false,
-  },
 ] as const;
 
 export const PHONE = "217-699-1337";
