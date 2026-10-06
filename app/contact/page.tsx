@@ -61,7 +61,7 @@ export default function ContactPage() {
         <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={cardLabel}>Hours</div>
           <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.65, color: "var(--text-muted)", maxWidth: "30em" }}>
-            Business hours are Central time. Managed clients on 24/7 coverage reach the on-call line day or night.
+            Monday to Friday, 8 to 5 Central.
           </p>
         </div>
       </div>
