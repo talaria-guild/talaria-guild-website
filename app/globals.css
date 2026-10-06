@@ -24,10 +24,6 @@ img { max-width: 100%; }
 .container-lg { max-width: var(--container-lg); margin: 0 auto; }
 .container-md { max-width: var(--container-md); margin: 0 auto; }
 
-/* Eyebrow / kicker (mono uppercase, optional gold dash) */
-.eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
-.eyebrow-dash { width: 28px; height: 2px; background: var(--accent); display: block; flex: none; }
-
 /* Buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; text-decoration: none; font-family: var(--font-sans); font-weight: 600; border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer; white-space: nowrap; transition: background var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
 .btn--lg { font-size: var(--text-md); padding: 15px 24px; min-height: 48px; }
@@ -58,8 +54,6 @@ img { max-width: 100%; }
 
 /* Tier / coverage-level card */
 .tier-card { position: relative; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: clamp(24px, 3vw, 30px); display: flex; flex-direction: column; gap: 16px; }
-.tier-card--featured { border-color: var(--border-gold); box-shadow: var(--shadow-md); }
-.tier-badge { position: absolute; top: -11px; left: clamp(24px, 3vw, 30px); background: var(--accent); color: var(--accent-contrast); font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.16em; text-transform: uppercase; font-weight: 500; padding: 4px 10px; border-radius: var(--radius-pill); }
 .tier-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .tier-list li { display: flex; gap: 10px; font-size: var(--text-sm); color: var(--text-body); }
 
