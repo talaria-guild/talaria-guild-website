@@ -165,9 +165,10 @@ jobs:
             chmod 600 .env
 
             # Contact-form secrets, in their own file rather than .env: .env is
-            # compose's interpolation file and the rollback path below rewrites it with TAG alone, and these are container
-            # environment (compose env_file), not interpolation. Rewritten every
-            # deploy so a rotated GitHub secret takes effect on the next one.
+            # compose's interpolation file, the rollback path below rewrites it
+            # with TAG alone, and these are container environment (compose
+            # env_file), not interpolation. Rewritten every deploy so a rotated
+            # GitHub secret takes effect on the next one.
             umask 077
             {
               printf 'OPS_MACHINE_SECRET=%s\n' "${OPS_MACHINE_SECRET:-}"

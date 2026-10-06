@@ -68,8 +68,9 @@ export default function ContactForm({ siteKey, plan }: { siteKey: string | null;
         encodeURIComponent("Website inquiry: " + (fields.company || fields.name)) +
         "&body=" +
         encodeURIComponent(
-          [`Name: ${fields.name}`, fields.company && `Company: ${fields.company}`, fields.phone && `Phone: ${fields.phone}`, "", fields.message]
-            .filter((l) => l !== "" && l !== undefined)
+          [`Name: ${fields.name}`, fields.company && `Company: ${fields.company}`, fields.phone && `Phone: ${fields.phone}`, null, fields.message]
+            .filter((l) => l !== "")
+            .map((l) => l ?? "")
             .join("\n"),
         ),
     );
