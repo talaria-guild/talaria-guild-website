@@ -21,7 +21,7 @@ export default function TopBar() {
       >
         <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <MapPin size={13} strokeWidth={1.75} style={{ color: "var(--gold-500)" }} />
-          Illinois
+          Central Illinois
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <a href={PHONE_HREF} className="chrome-link" style={{ letterSpacing: "0.14em" }}>

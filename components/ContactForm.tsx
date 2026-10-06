@@ -27,7 +27,7 @@ export default function ContactForm() {
       .join("\n");
     const href =
       `mailto:${EMAIL}?subject=` +
-      encodeURIComponent("Website enquiry — " + (get("company") || get("name"))) +
+      encodeURIComponent("Website enquiry: " + (get("company") || get("name"))) +
       "&body=" +
       encodeURIComponent(body);
     setSent(true);
@@ -44,7 +44,7 @@ export default function ContactForm() {
           Your message is ready to send.
         </h2>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.65, color: "var(--text-muted)" }}>
-          We&apos;ve opened it in your mail app — send it and we&apos;ll reply within one business day. Prefer to talk instead? Call {PHONE}.
+          We&apos;ve opened it in your mail app. Send it and we&apos;ll reply within one business day. Prefer to talk instead? Call {PHONE}.
         </p>
       </div>
     );
@@ -76,7 +76,7 @@ export default function ContactForm() {
       </div>
       <div className="field">
         <label htmlFor="tw-message">Message</label>
-        <textarea id="tw-message" name="message" rows={5} required placeholder="What's going on, and what would a good outcome look like?" className="field-input" />
+        <textarea id="tw-message" name="message" rows={5} required placeholder="What's going on?" className="field-input" />
       </div>
       <button type="submit" className="btn btn--lg btn--gold">
         Send message

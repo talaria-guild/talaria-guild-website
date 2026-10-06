@@ -27,7 +27,7 @@ export default function Footer() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/assets/logo-full-ondark.png" alt="Talaria Works" style={{ height: 58, width: "auto", display: "block", alignSelf: "flex-start" }} />
           <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.65, maxWidth: "24em" }}>
-            Managed IT, security, and custom software for organizations in Illinois and beyond.
+            Managed IT, security, and custom software for small businesses in Central Illinois.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function Footer() {
           <div style={colTitle}>Reach us</div>
           <a href={PHONE_HREF} className="chrome-link" style={linkStyle}><Phone size={15} strokeWidth={1.75} />{PHONE}</a>
           <a href={EMAIL_HREF} className="chrome-link" style={linkStyle}><Mail size={15} strokeWidth={1.75} />{EMAIL}</a>
-          <span style={{ display: "flex", alignItems: "center", gap: 9, fontSize: "var(--text-sm)" }}><MapPin size={15} strokeWidth={1.75} />Illinois, United States</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 9, fontSize: "var(--text-sm)" }}><MapPin size={15} strokeWidth={1.75} />Central Illinois</span>
         </div>
       </div>
 
