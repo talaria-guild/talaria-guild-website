@@ -84,7 +84,7 @@ export default function ServicesPage() {
                     <li key={it}><Check size={16} strokeWidth={1.75} style={{ color: "var(--gold-600)", marginTop: 3, flex: "none" }} />{it}</li>
                   ))}
                 </ul>
-                <a href="/contact" className="link-gold link-gold--mono" style={{ marginTop: "auto" }}>Request pricing<ArrowRight size={14} strokeWidth={1.75} /></a>
+                <a href={`/contact?plan=${t.slug}`} className="link-gold link-gold--mono" style={{ marginTop: "auto" }}>Request pricing<ArrowRight size={14} strokeWidth={1.75} /></a>
               </div>
             ))}
           </div>

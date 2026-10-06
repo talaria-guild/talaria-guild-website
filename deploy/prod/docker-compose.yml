@@ -35,6 +35,19 @@ services:
       SITE_ENV: production
       SITE_URL: https://talariaworks.com
 
+      # Contact form -> Talaria Ops (crm D163). Not secret, so it lives here in
+      # git; the HMAC secret and the Turnstile keys arrive via secrets.env below.
+      OPS_URL: https://ops.talariaworks.com
+      OPS_MACHINE: website
+
+    # Written by the deploy workflow from GitHub environment secrets (mode 600):
+    # OPS_MACHINE_SECRET, TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY. Optional on
+    # purpose — without it the site still serves, and the contact form falls
+    # back to email and phone instead of filing in Ops (lib/ops.ts).
+    env_file:
+      - path: ./secrets.env
+        required: false
+
     healthcheck:
       test:
         [

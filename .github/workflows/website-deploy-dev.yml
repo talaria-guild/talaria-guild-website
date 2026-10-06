@@ -69,12 +69,15 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
           GHCR_ACTOR: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPS_MACHINE_SECRET: ${{ secrets.OPS_MACHINE_SECRET }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          envs: TAG,GHCR_ACTOR,GHCR_TOKEN
+          envs: TAG,GHCR_ACTOR,GHCR_TOKEN,OPS_MACHINE_SECRET,TURNSTILE_SITE_KEY,TURNSTILE_SECRET_KEY
           script: |
             # Stop at the first failure rather than limping forward on stale
             # state. basics-book lost days to the opposite: a `docker compose
@@ -91,10 +94,21 @@ jobs:
             # deploys the way a hand-seeded credential can.
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_ACTOR}" --password-stdin
 
-            # No .env is written here, and that is worth stating plainly: this
-            # site has no secrets and no database. SITE_ENV and SITE_URL are
+            # No .env is written here: SITE_ENV, SITE_URL and the Ops URL are
             # non-secret and live in the compose file, in git, where they are
             # reviewable in a diff rather than only on disk.
+
+            # Contact-form secrets, in their own file rather than .env: .env is
+            # compose's interpolation file, and these are container
+            # environment (compose env_file), not interpolation. Rewritten every
+            # deploy so a rotated GitHub secret takes effect on the next one.
+            umask 077
+            {
+              printf 'OPS_MACHINE_SECRET=%s\n' "${OPS_MACHINE_SECRET:-}"
+              printf 'TURNSTILE_SITE_KEY=%s\n' "${TURNSTILE_SITE_KEY:-}"
+              printf 'TURNSTILE_SECRET_KEY=%s\n' "${TURNSTILE_SECRET_KEY:-}"
+            } > secrets.env
+            chmod 600 secrets.env
             export TAG="${TAG}"
             docker compose pull
             docker compose up -d
