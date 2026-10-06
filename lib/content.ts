@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ShieldCheck, SquareCode, Radar, Activity, Users, DatabaseBackup,
-  MailWarning, Headset, FileCheck2, LayoutDashboard, Workflow, Sparkles,
+  MailWarning, Headset, LayoutDashboard, Workflow, Sparkles,
   GraduationCap, GitMerge,
 } from "lucide-react";
 
@@ -43,10 +43,9 @@ export const managedFeatures: Feature[] = [
   { icon: Radar, title: "24/7 managed detection & response", body: "A security team watching enterprise endpoint telemetry overnight and on holidays, with authority to contain a threat before you wake up." },
   { icon: Activity, title: "Monitoring & patching", body: "Servers, workstations, and network gear kept current on a tested schedule, so updates land in a maintenance window instead of a crisis." },
   { icon: Users, title: "Microsoft 365 management", body: "Accounts, licensing, permissions, and device policy governed properly — including the joiner-and-leaver work most teams do by memory." },
-  { icon: DatabaseBackup, title: "Backup & disaster recovery", body: "Immutable copies held off-site and restore drills you actually see the results of — a backup nobody has tested is a guess." },
-  { icon: MailWarning, title: "Email security & awareness training", body: "Filtering ahead of the inbox, plus short simulated-phishing coaching that teaches staff rather than shames them." },
+  { icon: DatabaseBackup, title: "Backup & recovery", body: "Cloud backup of Microsoft 365 and your computers, with restores tested so we know they work." },
+  { icon: MailWarning, title: "Security awareness training", body: "Short lessons and practice phishing emails, so your staff learn what a bad message looks like before a real one arrives." },
   { icon: Headset, title: "Helpdesk your staff will use", body: "Day-to-day requests answered by engineers who already know your setup, so nobody has to re-explain the printer every time." },
-  { icon: FileCheck2, title: "Compliance-ready operations", body: "Controls, documentation, and evidence kept audit-ready for regulated work such as HIPAA and CMMC — before the questionnaire arrives." },
 ];
 
 /** Services — Software & AI engineering capabilities. */
@@ -64,14 +63,14 @@ export const tiers = [
     level: "Level 01",
     name: "Security baseline",
     blurb: "For teams with IT already handled who need the security floor raised.",
-    items: ["Managed endpoint protection", "Email filtering and awareness training", "Patch oversight and monthly reporting"],
+    items: ["Endpoint protection watched by a 24/7 security team", "Patching, DNS filtering, and Microsoft 365 license management", "Monthly status report, with support billed by the hour"],
     featured: false,
   },
   {
     level: "Level 02",
     name: "Fully managed everyday IT",
     blurb: "We become your IT department — the whole running of it, end of story.",
-    items: ["Everything in the security baseline", "Unlimited helpdesk and onboarding support", "Microsoft 365, device, and identity administration", "Backup with verified restore drills"],
+    items: ["Everything in the security baseline", "Unlimited remote helpdesk, weekdays 8 to 5", "Cloud backup for Microsoft 365 and computers", "Security awareness training and a password manager"],
     featured: true,
   },
 ] as const;
