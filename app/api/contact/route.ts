@@ -76,7 +76,9 @@ export async function POST(req: Request) {
   if (!name || !email || !EMAIL_RE.test(email) || !message) return json(400, { error: "invalid" });
 
   const token = typeof data.turnstileToken === "string" ? data.turnstileToken : null;
-  if (!(await verifyTurnstile(token, ip))) return json(403, { error: "verification" });
+  const human = await verifyTurnstile(token, ip);
+  if (human === "rejected") return json(403, { error: "verification" });
+  if (human === "unavailable") return json(503, { error: "unavailable" });
 
   const lead: Lead = {
     name,
