@@ -43,6 +43,24 @@ export function Btn({
   );
 }
 
+/** Mono uppercase kicker with an optional gold dash. */
+export function Eyebrow({
+  children,
+  dash = true,
+  color = "var(--text-brand)",
+}: {
+  children: ReactNode;
+  dash?: boolean;
+  color?: string;
+}) {
+  return (
+    <span className="eyebrow" style={{ color }}>
+      {dash && <span className="eyebrow-dash" />}
+      {children}
+    </span>
+  );
+}
+
 /** Gold rounded-square icon chip. */
 export function IconChip({
   icon: Icon,

@@ -73,7 +73,7 @@ export default function Header() {
         </nav>
 
         <Link href="/contact" className="btn btn--md btn--gold" style={{ flex: "none" }}>
-          Get in touch
+          Request a consultation
           <ArrowRight size={16} strokeWidth={1.75} />
         </Link>
       </div>

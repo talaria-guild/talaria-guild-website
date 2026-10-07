@@ -7,15 +7,15 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   metadataBase: new URL("https://talariaworks.com"),
   title: {
-    default: "Talaria Works | Managed IT, security & custom software",
-    template: "%s | Talaria Works",
+    default: "Talaria Works — Managed IT, security & custom software",
+    template: "%s — Talaria Works",
   },
   description:
-    "Managed IT, security, and custom software for small businesses in Central Illinois.",
+    "Managed IT and security for the systems you run every day, and custom software for the ones you wish you had. Based in Illinois. We design it, deploy it, and keep it running.",
   openGraph: {
-    title: "Talaria Works | Managed IT, security & custom software",
+    title: "Talaria Works — Managed IT, security & custom software",
     description:
-      "Managed IT, security, and custom software for small businesses in Central Illinois.",
+      "Managed IT, security, and custom software for organizations in Illinois and beyond.",
     url: "https://talariaworks.com",
     siteName: "Talaria Works",
     type: "website",

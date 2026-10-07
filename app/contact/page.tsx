@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Phone, Mail } from "lucide-react";
+import { Eyebrow } from "@/components/ui";
 import ContactForm from "@/components/ContactForm";
 import { PHONE, PHONE_HREF, EMAIL, EMAIL_HREF } from "@/lib/content";
 
@@ -7,7 +8,7 @@ import { PHONE, PHONE_HREF, EMAIL, EMAIL_HREF } from "@/lib/content";
 // results can never drift from the number on the page.
 export const metadata: Metadata = {
   title: "Contact",
-  description: `Tell us what you're working on. We reply within one business day. Call ${PHONE} or email ${EMAIL}.`,
+  description: `Tell us what you're working on. We'll get back to you within one business day — no obligation. Call ${PHONE} or email ${EMAIL}.`,
 };
 
 const cardLabel: React.CSSProperties = {
@@ -32,11 +33,12 @@ export default function ContactPage() {
     >
       {/* Left: intro + reach us */}
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        <Eyebrow>Contact</Eyebrow>
         <h1 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.08, fontSize: "clamp(30px,4.2vw,48px)", color: "var(--text-strong)", margin: 0, maxWidth: "16em" }}>
           Tell us what you&apos;re working on.
         </h1>
         <p style={{ fontSize: "var(--text-lg)", lineHeight: 1.6, color: "var(--text-muted)", margin: 0, maxWidth: "34em" }}>
-          We reply within one business day.
+          We&apos;ll get back to you within one business day. No obligation.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 6 }}>
