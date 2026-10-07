@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { Phone, Mail } from "lucide-react";
 import { Eyebrow } from "@/components/ui";
 import ContactForm from "@/components/ContactForm";
-import { PHONE, PHONE_HREF, EMAIL, EMAIL_HREF } from "@/lib/content";
+import { PHONE, PHONE_HREF, EMAIL, EMAIL_HREF, tiers } from "@/lib/content";
+import { turnstileSiteKey } from "@/lib/turnstile";
+
+// Per request: the Turnstile key is environment config read at runtime
+// (lib/site.ts explains why nothing here may be frozen at build time), and
+// ?plan= arrives from the "Ask about pricing" links on /services.
+export const dynamic = "force-dynamic";
 
 // Built from the same constants the page body renders, so the number in search
 // results can never drift from the number on the page.
@@ -19,7 +25,10 @@ const cardLabel: React.CSSProperties = {
   color: "var(--text-subtle)",
 };
 
-export default function ContactPage() {
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ plan?: string | string[] }> }) {
+  const { plan: requested } = await searchParams;
+  const plan = tiers.find((t) => t.slug === requested)?.slug ?? null;
+
   return (
     <section
       className="container-xl"
@@ -68,7 +77,7 @@ export default function ContactPage() {
 
       {/* Right: form card */}
       <div style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-md)", padding: "clamp(24px,3.4vw,40px)" }}>
-        <ContactForm />
+        <ContactForm siteKey={turnstileSiteKey()} plan={plan} />
       </div>
     </section>
   );

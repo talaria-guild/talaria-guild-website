@@ -60,6 +60,7 @@ export const softwareFeatures: Feature[] = [
 /** Services — coverage levels (names shown, pricing gated per positioning). */
 export const tiers = [
   {
+    slug: "security-baseline",
     level: "Level 01",
     name: "Security baseline",
     blurb: "For teams with IT already handled who need the security floor raised.",
@@ -67,6 +68,7 @@ export const tiers = [
     featured: false,
   },
   {
+    slug: "fully-managed",
     level: "Level 02",
     name: "Fully managed everyday IT",
     blurb: "We become your IT department — the whole running of it, end of story.",

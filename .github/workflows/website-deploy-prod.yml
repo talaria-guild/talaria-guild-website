@@ -105,18 +105,21 @@ jobs:
           echo "Image found: ${IMAGE}"
 
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           RELEASE: ${{ github.event.release.tag_name || 'manual' }}
           GHCR_ACTOR: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPS_MACHINE_SECRET: ${{ secrets.OPS_MACHINE_SECRET }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          envs: TAG,RELEASE,GHCR_ACTOR,GHCR_TOKEN
+          envs: TAG,RELEASE,GHCR_ACTOR,GHCR_TOKEN,OPS_MACHINE_SECRET,TURNSTILE_SITE_KEY,TURNSTILE_SECRET_KEY
           script: |
             # Stop at the first failure rather than limping forward on stale
             # state — see the dev workflow for the basics-book incident this
@@ -160,6 +163,19 @@ jobs:
             umask 077
             printf 'TAG=%s\n' "${TAG}" > .env
             chmod 600 .env
+
+            # Contact-form secrets, in their own file rather than .env: .env is
+            # compose's interpolation file, the rollback path below rewrites it
+            # with TAG alone, and these are container environment (compose
+            # env_file), not interpolation. Rewritten every deploy so a rotated
+            # GitHub secret takes effect on the next one.
+            umask 077
+            {
+              printf 'OPS_MACHINE_SECRET=%s\n' "${OPS_MACHINE_SECRET:-}"
+              printf 'TURNSTILE_SITE_KEY=%s\n' "${TURNSTILE_SITE_KEY:-}"
+              printf 'TURNSTILE_SECRET_KEY=%s\n' "${TURNSTILE_SECRET_KEY:-}"
+            } > secrets.env
+            chmod 600 secrets.env
 
             export TAG="${TAG}"
 
