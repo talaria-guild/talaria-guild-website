@@ -57,6 +57,8 @@ jobs:
     permissions:
       contents: read
       packages: read
+      # Lets the tailnet step below ask GitHub for this job's OIDC token.
+      id-token: write
 
     steps:
       - name: Resolve image tag
@@ -104,6 +106,27 @@ jobs:
           fi
           echo "Image found: ${IMAGE}"
 
+      # ── Over the tailnet, not the public internet (PRJ-0008) ──────────────
+      #
+      # The runner joins the tailnet as an ephemeral `tag:ci` node through
+      # workload identity federation: GitHub's OIDC token is the credential, so
+      # no Tailscale secret is stored anywhere. The trust credential only accepts
+      # tokens from this repo's `website-*` environments, and `website-prod`
+      # only accepts `main` and `v*` tags. Once every deploy to talaria-portal goes
+      # this way, its public SSH port can close.
+      #
+      # Back to public SSH, if Tailscale itself is down: point `host:` below
+      # back at `secrets.DEPLOY_HOST`, delete this step and the `fingerprint:`
+      # line. That secret is kept for exactly this.
+      - name: Join the tailnet (ephemeral tag:ci node)
+        # Pinned to the v4.2.0 commit: a moved tag cannot change what runs here.
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: ${{ vars.DEPLOY_HOST_TAILNET }}
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         env:
@@ -115,10 +138,14 @@ jobs:
           TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
+          host: ${{ vars.DEPLOY_HOST_TAILNET }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
+          # Refuse any host whose key is not talaria-portal's. This is the ECDSA
+          # key, the one this action negotiates, read from the server's own
+          # /etc/ssh. Before this, the host key was not checked at all.
+          fingerprint: ${{ vars.DEPLOY_HOST_FINGERPRINT }}
           envs: TAG,RELEASE,GHCR_ACTOR,GHCR_TOKEN,OPS_MACHINE_SECRET,TURNSTILE_SITE_KEY,TURNSTILE_SECRET_KEY
           script: |
             # Stop at the first failure rather than limping forward on stale
